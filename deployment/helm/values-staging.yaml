@@ -1,0 +1,13 @@
+# Staging overrides. Replaces the legacy appsettings.Staging.json (inbound keys only).
+# Usage: helm upgrade --install <release> ./deployment/helm -f ./deployment/helm/values.yaml -f ./deployment/helm/values-staging.yaml
+constConfig:
+  aspEnv: "Staging"
+
+inboundConfig:
+  KeyVaultUri: "https://bai-ch-eus2-prd-kv.vault.azure.net/"
+  ApplicationInsights__InstrumentationKey: "Stg--Clearinghouse--ApplicationInsights--InstrumentationKey"
+  ApplicationInsights__APPLICATIONINSIGHTS_CONNECTION_STRING: "Stg--Billing--ApplicationInsights--APPLICATIONINSIGHTS--CONNECTIONSTRING"
+  BillingApiUrl: "Stg--Clearinghouse--BillingApiUrl"
+  BillingApiKey: "Stg--Clearinghouse--BillingApiKey"
+  ConnectionStrings__BlobStorage__ConnectionString: "Stg--Clearinghouse--ConnectionStrings--BlobStorage--ConnectionString"
+  Swagger__Show: "true"

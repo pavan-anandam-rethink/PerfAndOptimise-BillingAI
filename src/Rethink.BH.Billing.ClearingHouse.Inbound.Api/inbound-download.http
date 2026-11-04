@@ -1,0 +1,19 @@
+@host = http://localhost:7400
+@appKey = 11111111-1111-1111-1111-111111111111
+
+### Availity (expect 200, 204, or 500 with {"failed":n,"total":m})
+POST {{host}}/ClearingHouseClaimProcessor/downloadEdiDataFromSftp
+Content-Type: application/json
+XApiKey: {{appKey}}
+
+1
+
+### Unknown clearing house (expect 400 "Invalid clearing house ID.")
+POST {{host}}/ClearingHouseClaimProcessor/downloadEdiDataFromSftp
+Content-Type: application/json
+x-application-key: {{appKey}}
+
+99
+
+### Liveness
+GET {{host}}/healthcheck/live

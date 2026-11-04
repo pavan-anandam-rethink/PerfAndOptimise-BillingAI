@@ -1,0 +1,29 @@
+## .NET build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+publish/
+
+## Test and coverage output
+TestResults/
+coveragereport/
+*.coverage
+*.coveragexml
+coverage*.xml
+coverage*.json
+
+## IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+*.DotSettings.user
+
+## Local secrets and overrides
+appsettings.Local.json
+*.pfx
+*.publishsettings
+.env

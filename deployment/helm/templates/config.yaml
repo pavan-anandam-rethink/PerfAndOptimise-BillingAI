@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "web-api.fullname" . }}-config
+  namespace: {{ .Values.namespace }}
+data:
+  AspEnv: {{ .Values.constConfig.aspEnv }}
+  AppInsightKey: {{ .Values.constConfig.appInsightsKey }}
+  KvName: {{ .Values.constConfig.kvName }}
+  KvAppName: {{ .Values.constConfig.kvAppName }}
+  KvVersion: {{ .Values.constConfig.kvVersion }}
+  AzClientId: {{ .Values.constConfig.azClientId }}
+  AppInsightsConnection: {{ .Values.constConfig.appInsightsConnection }}
+  SwaggerAuthVirtualDirectory: {{ .Values.constConfig.virtualDirectory }}
+  Domain: {{ .Values.subDomain }}{{ .Values.domain }}
+  AppVirtualDirectory: {{ .Values.constConfig.virtualDirectory }}

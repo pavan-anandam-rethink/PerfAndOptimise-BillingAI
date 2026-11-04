@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rethink.BH.Billing.ClearingHouse.Inbound.UnitTests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E700AC5A-A2A3-4302-BC47-736C254E67BC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rethink.BH.Billing.ClearingHouse.Inbound.Application", "src\Rethink.BH.Billing.ClearingHouse.Inbound.Application\Rethink.BH.Billing.ClearingHouse.Inbound.Application.csproj", "{CBFFFC84-98F6-4C87-852B-F7B9A8504A1D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rethink.BH.Billing.ClearingHouse.Inbound.Contracts", "src\Rethink.BH.Billing.ClearingHouse.Inbound.Contracts\Rethink.BH.Billing.ClearingHouse.Inbound.Contracts.csproj", "{128F4B25-57CC-4979-BAE7-47FC83F63B44}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rethink.BH.Billing.ClearingHouse.Inbound.Domain", "src\Rethink.BH.Billing.ClearingHouse.Inbound.Domain\Rethink.BH.Billing.ClearingHouse.Inbound.Domain.csproj", "{28BB5302-9823-4ACB-9A29-B28A12BDDCA0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rethink.BH.Billing.ClearingHouse.Inbound.Infrastructure", "src\Rethink.BH.Billing.ClearingHouse.Inbound.Infrastructure\Rethink.BH.Billing.ClearingHouse.Inbound.Infrastructure.csproj", "{063C7EB8-57A6-49F5-AD04-BF41D0974960}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rethink.BH.Billing.ClearingHouse.Inbound.Api", "src\Rethink.BH.Billing.ClearingHouse.Inbound.Api\Rethink.BH.Billing.ClearingHouse.Inbound.Api.csproj", "{93A23425-B2EA-460D-B4B1-E4684603ACCD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1BF9949F-D016-442D-A83D-95EE7131674E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rethink.BH.Billing.ClearingHouse.Inbound.UnitTests", "tests\Rethink.BH.Billing.ClearingHouse.Inbound.UnitTests\Rethink.BH.Billing.ClearingHouse.Inbound.UnitTests.csproj", "{3BA4CF12-C076-4C5D-B1BA-742E44330D11}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CBFFFC84-98F6-4C87-852B-F7B9A8504A1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CBFFFC84-98F6-4C87-852B-F7B9A8504A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CBFFFC84-98F6-4C87-852B-F7B9A8504A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CBFFFC84-98F6-4C87-852B-F7B9A8504A1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{128F4B25-57CC-4979-BAE7-47FC83F63B44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{128F4B25-57CC-4979-BAE7-47FC83F63B44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{128F4B25-57CC-4979-BAE7-47FC83F63B44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{128F4B25-57CC-4979-BAE7-47FC83F63B44}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28BB5302-9823-4ACB-9A29-B28A12BDDCA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28BB5302-9823-4ACB-9A29-B28A12BDDCA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28BB5302-9823-4ACB-9A29-B28A12BDDCA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28BB5302-9823-4ACB-9A29-B28A12BDDCA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{063C7EB8-57A6-49F5-AD04-BF41D0974960}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{063C7EB8-57A6-49F5-AD04-BF41D0974960}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{063C7EB8-57A6-49F5-AD04-BF41D0974960}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{063C7EB8-57A6-49F5-AD04-BF41D0974960}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93A23425-B2EA-460D-B4B1-E4684603ACCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93A23425-B2EA-460D-B4B1-E4684603ACCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93A23425-B2EA-460D-B4B1-E4684603ACCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93A23425-B2EA-460D-B4B1-E4684603ACCD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BA4CF12-C076-4C5D-B1BA-742E44330D11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BA4CF12-C076-4C5D-B1BA-742E44330D11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BA4CF12-C076-4C5D-B1BA-742E44330D11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BA4CF12-C076-4C5D-B1BA-742E44330D11}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CBFFFC84-98F6-4C87-852B-F7B9A8504A1D} = {E700AC5A-A2A3-4302-BC47-736C254E67BC}
+		{128F4B25-57CC-4979-BAE7-47FC83F63B44} = {E700AC5A-A2A3-4302-BC47-736C254E67BC}
+		{28BB5302-9823-4ACB-9A29-B28A12BDDCA0} = {E700AC5A-A2A3-4302-BC47-736C254E67BC}
+		{063C7EB8-57A6-49F5-AD04-BF41D0974960} = {E700AC5A-A2A3-4302-BC47-736C254E67BC}
+		{93A23425-B2EA-460D-B4B1-E4684603ACCD} = {E700AC5A-A2A3-4302-BC47-736C254E67BC}
+		{3BA4CF12-C076-4C5D-B1BA-742E44330D11} = {1BF9949F-D016-442D-A83D-95EE7131674E}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,14 @@
+# Production overrides. Replaces the legacy appsettings.Production.json (inbound keys only).
+# Usage: helm upgrade --install <release> ./deployment/helm -f ./deployment/helm/values.yaml -f ./deployment/helm/values-production.yaml
+constConfig:
+  aspEnv: "Production"
+
+inboundConfig:
+  KeyVaultUri: "https://rta-billing-prd-kv.vault.azure.net/"
+  ApplicationInsights__InstrumentationKey: "Prd--Clearinghouse--ApplicationInsights--InstrumentationKey"
+  ApplicationInsights__APPLICATIONINSIGHTS_CONNECTION_STRING: "Prd--Billing--ApplicationInsights--APPLICATIONINSIGHTS--CONNECTIONSTRING"
+  BillingApiUrl: "Prd--Clearinghouse--BillingApiUrl"
+  BillingApiKey: "Prd--Clearinghouse--BillingApiKey"
+  # The production secret name really is spelled "BlobStoragge"; it must match Key Vault exactly.
+  ConnectionStrings__BlobStorage__ConnectionString: "Prd--Clearinghouse--ConnectionStrings--BlobStoragge--ConnectionString"
+  Swagger__Show: "true"

@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "web-api.fullname" . }}-service
+  namespace: {{ .Values.namespace }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ include "web-api.fullname" . }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.service.port }}
+      targetPort: {{ default .Values.containerPort .Values.service.targetPort }}
+
+{{- if .Values.agfc.route.redirectHttpToHttps }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "web-api.fullname" . }}-http-redirect
+  namespace: {{ .Values.namespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.agfc.gateway.name }}
+      namespace: {{ .Values.agfc.gateway.namespace }}
+      sectionName: {{ .Values.agfc.listeners.http }}
+  hostnames:
+    - {{ include "web-api.host" . | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ include "web-api.pathPrefix" . | quote }}
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+{{- end }}
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "web-api.fullname" . }}-https
+  namespace: {{ .Values.namespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.agfc.gateway.name }}
+      namespace: {{ .Values.agfc.gateway.namespace }}
+      sectionName: {{ .Values.agfc.listeners.https }}
+  hostnames:
+    - {{ include "web-api.host" . | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ include "web-api.pathPrefix" . | quote }}
+{{- if .Values.agfc.route.stripPathPrefix }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+{{- end }}
+      backendRefs:
+        - name: {{ include "web-api.fullname" . }}-service
+          port: {{ .Values.service.port }}
+
+---
+apiVersion: alb.networking.azure.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: {{ include "web-api.fullname" . }}-health-check
+  namespace: {{ .Values.namespace }}
+spec:
+  targetRef:
+    group: ""
+    kind: Service
+    name: {{ include "web-api.fullname" . }}-service
+    namespace: {{ .Values.namespace }}
+  default:
+    interval: {{ .Values.agfc.healthCheck.interval }}
+    timeout: {{ .Values.agfc.healthCheck.timeout }}
+    healthyThreshold: {{ .Values.agfc.healthCheck.healthyThreshold }}
+    unhealthyThreshold: {{ .Values.agfc.healthCheck.unhealthyThreshold }}
+    port: {{ default .Values.containerPort .Values.agfc.healthCheck.port }}
+    http:
+      host: {{ .Values.agfc.healthCheck.host | quote }}
+      path: {{ .Values.agfc.healthCheck.path | quote }}
+      match:
+        statusCodes:
+{{- range .Values.agfc.healthCheck.statusCodes }}
+          - start: {{ .start }}
+            end: {{ .end }}
+{{- end }}
+    useTLS: {{ .Values.agfc.healthCheck.useTls }}

@@ -1,0 +1,19 @@
+# apiVersion: keda.sh/v1alpha1
+# kind: ScaledObject
+# metadata:
+#   name: {{ include "web-api.fullname" . }}-scaler
+#   namespace: {{ .Values.namespace }}
+# spec:
+#   scaleTargetRef:
+#     name: {{ include "web-api.fullname" . }}
+#   minReplicaCount: 0
+#   maxReplicaCount: 1
+#   pollingInterval: 120
+#   cooldownPeriod: 120
+#   triggers:
+#   - type: cron
+#     metadata:
+#       timezone: America/New_York
+#       start: {{ .Values.scaledObject.start }}
+#       end: {{ .Values.scaledObject.end }}
+#       desiredReplicas: "1"

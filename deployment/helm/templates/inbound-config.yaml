@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "web-api.fullname" . }}-inbound-config
+  namespace: {{ .Values.namespace }}
+data:
+  {{- range $key, $value := .Values.inboundConfig }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}

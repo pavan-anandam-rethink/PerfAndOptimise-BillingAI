@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "web-api.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "web-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "web-api.selectorLabels" . | nindent 6 }}
+      app: {{ include "web-api.fullname" . }}
+  template:
+    metadata:
+      annotations:
+        {{- if and .Values.datadog .Values.datadog.enabled }}
+        ad.datadoghq.com/{{ include "web-api.fullname" . }}.logs: >-
+          [{"source":"{{ .Values.datadog.logs.source }}","service":"{{ .Values.datadog.logs.service }}","tags":["env:{{ .Values.datadog.logs.env }}"]}]
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "web-api.selectorLabels" . | nindent 8 }}
+        app: {{ include "web-api.fullname" . }}
+    spec:
+      serviceAccountName: {{ include "web-api.serviceAccountName" . }}
+
+      {{- if .Values.nodeAffinity.enabled }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.azure.com/agentpool
+                operator: In
+                values:
+                - {{ required "nodeAffinity.agentPoolName is required when nodeAffinity.enabled is true" .Values.nodeAffinity.agentPoolName | quote }}
+      {{- end }}
+
+      containers:
+        - name: {{ include "web-api.fullname" . }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "web-api.fullname" . }}-inbound-config
+          env:
+          - name: ASPNETCORE_ENVIRONMENT
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: AspEnv
+          - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: AppInsightsConnection
+          - name: APPINSIGHTS_INSTRUMENTATIONKEY
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: AppInsightKey
+          - name: KEY_VAULT_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: KvName     
+          - name: APP_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: KvAppName
+          - name: APP_VERSION
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: KvAppName                 
+          - name: AZURE_CLIENT_ID
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: AzClientId  
+          - name: AppVirtualDirectory
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: AppVirtualDirectory  
+          - name: SwaggerAuth__VirtualDirectory
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: SwaggerAuthVirtualDirectory  
+          - name: SwaggerAuth__Domain
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "web-api.fullname" . }}-config
+                key: Domain
+          - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+            value: "false"
+
+          {{- if and .Values.datadog .Values.datadog.enabled }}
+          - name: DD_SERVICE
+            value: "{{ .Values.datadog.service }}"
+          - name: DD_ENV
+            value: "{{ .Values.datadog.env }}"
+          {{- end }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.cpuRequest | default .Values.resources.requests.cpu | quote }}
+              memory: {{ .Values.memoryRequest | default .Values.resources.requests.memory | quote }}
+            limits:
+              cpu: {{ .Values.cpuLimit | default .Values.resources.limits.cpu | quote }}
+              memory: {{ .Values.memoryLimit | default .Values.resources.limits.memory | quote }}
+          ports:
+            - containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+ 

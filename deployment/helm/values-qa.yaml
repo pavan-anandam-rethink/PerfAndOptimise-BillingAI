@@ -1,0 +1,13 @@
+# QA overrides. Replaces the legacy appsettings.QA.json (inbound keys only).
+# Usage: helm upgrade --install <release> ./deployment/helm -f ./deployment/helm/values.yaml -f ./deployment/helm/values-qa.yaml
+constConfig:
+  aspEnv: "QA"
+
+inboundConfig:
+  KeyVaultUri: "https://bai-ch-eus2-qas-kv.vault.azure.net/"
+  ApplicationInsights__InstrumentationKey: "QA--Clearinghouse--ApplicationInsights--InstrumentationKey"
+  ApplicationInsights__APPLICATIONINSIGHTS_CONNECTION_STRING: "QA--Billing--ApplicationInsights--APPLICATIONINSIGHTS--CONNECTIONSTRING"
+  BillingApiUrl: "QA--Clearinghouse--BillingApiUrl"
+  BillingApiKey: "QA--Clearinghouse--BillingApiKey"
+  ConnectionStrings__BlobStorage__ConnectionString: "QA--Clearinghouse--ConnectionStrings--BlobStorage--ConnectionString"
+  Swagger__Show: "true"
