@@ -39,7 +39,7 @@ public sealed class ClearingHouseClaimProcessorController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(DownloadFailureCounts), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> DownloadEdiDataFromSftp([FromBody] int clearingHouseId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DownloadEdiDataFromSftpAsync([FromBody] int clearingHouseId, CancellationToken cancellationToken)
     {
         ApiLog.DownloadStarting(_logger, ControllerName, clearingHouseId);
 

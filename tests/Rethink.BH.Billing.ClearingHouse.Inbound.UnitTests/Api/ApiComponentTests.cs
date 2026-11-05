@@ -30,7 +30,7 @@ public sealed class ApiComponentTests
     {
         var (controller, logger) = Controller(InboundDownloadResult.Invalid(99));
 
-        var result = await controller.DownloadEdiDataFromSftp(99, CancellationToken.None);
+        var result = await controller.DownloadEdiDataFromSftpAsync(99, CancellationToken.None);
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
         badRequest.StatusCode.Should().Be(400);
@@ -44,7 +44,7 @@ public sealed class ApiComponentTests
     {
         var (controller, logger) = Controller(InboundDownloadResult.Empty(1));
 
-        var result = await controller.DownloadEdiDataFromSftp(1, CancellationToken.None);
+        var result = await controller.DownloadEdiDataFromSftpAsync(1, CancellationToken.None);
 
         result.Should().BeOfType<NoContentResult>().Which.StatusCode.Should().Be(204);
         logger.Sink.SingleEvent(3002).State["ClearingHouseId"].Should().Be(1);
@@ -60,7 +60,7 @@ public sealed class ApiComponentTests
         ]);
         var (controller, logger) = Controller(run);
 
-        var result = await controller.DownloadEdiDataFromSftp(1, CancellationToken.None);
+        var result = await controller.DownloadEdiDataFromSftpAsync(1, CancellationToken.None);
 
         var failed = result.Should().BeOfType<ObjectResult>().Subject;
         failed.StatusCode.Should().Be(500);
@@ -77,7 +77,7 @@ public sealed class ApiComponentTests
     {
         var (controller, _) = Controller(InboundDownloadResult.ConnectionFailed(1));
 
-        var result = await controller.DownloadEdiDataFromSftp(1, CancellationToken.None);
+        var result = await controller.DownloadEdiDataFromSftpAsync(1, CancellationToken.None);
 
         result.Should().BeOfType<ObjectResult>().Which.Value.Should().Be(new DownloadFailureCounts(0, 0));
     }
@@ -92,7 +92,7 @@ public sealed class ApiComponentTests
         var logger = new CapturingLogger<ClearingHouseClaimProcessorController>();
         var controller = new ClearingHouseClaimProcessorController(mediator.Object, logger);
 
-        var result = await controller.DownloadEdiDataFromSftp(8, CancellationToken.None);
+        var result = await controller.DownloadEdiDataFromSftpAsync(8, CancellationToken.None);
 
         result.Should().BeOfType<OkResult>().Which.StatusCode.Should().Be(200);
         logger.Sink.SingleEvent(3004).State["Stored"].Should().Be(1);
