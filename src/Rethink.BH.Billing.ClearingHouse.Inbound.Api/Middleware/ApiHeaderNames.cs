@@ -9,6 +9,9 @@ public static class ApiHeaderNames
     /// <summary>Header posted by the scheduled SFTP download.</summary>
     public const string LegacyApiKey = "XApiKey";
 
+    /// <summary>Operator key for the pipeline endpoints.</summary>
+    public const string OperatorKey = "x-operator-key";
+
     /// <summary>Correlation header set by <c>UseCorrelationId</c>.</summary>
     public const string CorrelationId = "X-Correlation-ID";
 }

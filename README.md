@@ -1,19 +1,22 @@
-# Rethink BH Billing â€“ Clearing House Inbound Service
+# Rethink BH Billing – Clearing House Inbound Service
 
 Phase 1 of the clearing house performance work: the inbound SFTP download (`POST /ClearingHouseClaimProcessor/downloadEdiDataFromSftp`)
 rebuilt as a standalone .NET 8 service with centralized logging and an optimized download path. The HTTP contract and the Billing
 calls are the same as the legacy `Rethink.BH.Billing.ClearingHouseService` (branch `new-tenant-bill/main`).
+
+Phase 2 adds an opt-in queue pipeline (scheduled lister, Service Bus, KEDA-scaled download and process workers, Azure SQL
+manifest) that runs beside the unchanged endpoint. It is off by default; see [docs/pipeline.md](docs/pipeline.md).
 
 ## Solution layout
 
 | Project | Responsibility |
 | --- | --- |
 | `Domain` | Immutable records: `ClearingHouseDescriptor`, `RemoteFile`, `InboundFileOutcome`, `InboundDownloadResult`, `BillingRegistration`, `BackupWriteResult`. No dependencies. |
-| `Application` | The use case. `DownloadInboundFilesCommandHandler` (MediatR) opens SFTP, lists, selects, and hands the files to `InboundFileBatchProcessor`, which runs `InboundFileProcessor` per file with bounded parallelism. Ports (`ISftpSession`, `IBackupFileStore`, `IBillingFileRegistrar`, â€¦) live in `Abstractions`. |
+| `Application` | The use case. `DownloadInboundFilesCommandHandler` (MediatR) opens SFTP, lists, selects, and hands the files to `InboundFileBatchProcessor`, which runs `InboundFileProcessor` per file with bounded parallelism. Ports (`ISftpSession`, `IBackupFileStore`, `IBillingFileRegistrar`, …) live in `Abstractions`. |
 | `Infrastructure` | Adapters: SSH.NET connection pool with optional host-key pinning and Polly retries, Azure Blob write-once backup, Billing `UploadEDIResponseFile` client with a streamed JSON body, Key Vault secret resolution with caching. |
 | `Contracts` | Wire models (`DownloadSftpFileRequest`, `DownloadFailureCounts`). |
 | `Api` (`website.dll`) | Controller, legacy API-key middleware, global exception handler, request trace filter, host setup through RethinkCore (App Configuration, Key Vault, Application Insights, health checks). |
-| `tests/â€¦UnitTests` | 241 xUnit tests, including an in-process host (`WebApplicationFactory`) that exercises the HTTP contract end to end. |
+| `tests/…UnitTests` | 373 xUnit tests (pipeline tests run against SQLite in memory), including an in-process host (`WebApplicationFactory`) that exercises the HTTP contract end to end. |
 
 Every service is a `sealed` singleton (stateless or thread-safe); policies with no state (`LiteralWhenContainsEqualsPolicy`,
 `SecretNamePatternPolicy`) are shared static instances; log definitions are `static partial` source-generated classes.
@@ -33,12 +36,13 @@ Every log written during a run carries these scope values, so one failure can be
 | Scope key | Set by | Example |
 | --- | --- | --- |
 | `RequestName` | `RequestLoggingBehavior` | `DownloadInboundFilesCommand` |
-| `DownloadRunId` | handler, one per run | `9f1câ€¦` |
+| `DownloadRunId` | handler, one per run | `9f1c…` |
 | `ClearingHouseId`, `ClearingHouse` | handler | `1`, `Availity` |
 | `FileName`, `FileSizeBytes` | batch processor, one per file | `AV_835_20261104_0003.x12`, `5120` |
 | correlation id | `UseCorrelationId` (header `X-Correlation-ID`) | also written on `3020`/`3021` |
 
-Event ids are stable: `1000â€“1031` application, `2000â€“2010` infrastructure (SFTP, Billing), `3000â€“3021` API. File names and
+Event ids are stable: `1000–1031` application, `2000–2010` infrastructure (SFTP, Billing), `3000–3021` API. The pipeline adds
+`1100–1130`, `2020–2027`, and `3030–3033` ([docs/pipeline.md](docs/pipeline.md#monitoring)). File names and
 exception types are logged; file contents, credentials, and API keys never are (`SftpCredentials.ToString()` and
 `BillingApiSettings.ToString()` redact them).
 
@@ -61,7 +65,7 @@ then has `EventId`, `LogLevel`, `Category`, `Message`, `State` (the structured f
 
 ## Behavior parity with the legacy service
 
-Verified by tests in `tests/â€¦UnitTests` (named in brackets).
+Verified by tests in `tests/…UnitTests` (named in brackets).
 
 | Behavior | Legacy | This service |
 | --- | --- | --- |
@@ -78,7 +82,7 @@ Verified by tests in `tests/â€¦UnitTests` (named in brackets).
 | Billing response | `true`/`false`, quoted string, or `{success,queued,fileId}` | same parser |
 | Secrets | SFTP/blob value without `=` is a Key Vault name; Billing value matching `^[0-9a-zA-Z-]{1,127}$` is a Key Vault name, trimmed and unquoted | same [`SecretsTests`] |
 | Key Vault | `KEY_VAULT_NAME` (unless blank or `NotConfigured`), else `KeyVaultUri` | same |
-| Startup validation messages | `Clearinghouses is not configured.`, `AvailityBackup is not configured.`, â€¦ | same [`InfrastructureRegistrationTests`] |
+| Startup validation messages | `Clearinghouses is not configured.`, `AvailityBackup is not configured.`, … | same [`InfrastructureRegistrationTests`] |
 | API key | `XApiKey` copied to `x-application-key`; RethinkCore `XAppKeyActionFilter` | same |
 | Path base, Swagger, health | `AppVirtualDirectory`, `Swagger:Show` or Development, `/healthcheck/live` | same |
 
@@ -119,7 +123,7 @@ Restoring needs access to the Rethink Azure Artifacts feeds. NuGet audit reads v
 credentials run `dotnet restore -p:NuGetAudit=false` and check advisories with
 `dotnet list package --vulnerable --include-transitive --source https://api.nuget.org/v3/index.json`.
 
-Quality gates: cyclomatic complexity â‰¤ 10 (CA1502), maintainability index â‰¥ 40 (CA1505), class coupling limits (CA1506),
+Quality gates: cyclomatic complexity = 10 (CA1502), maintainability index = 40 (CA1505), class coupling limits (CA1506),
 no vulnerable packages (transitive pins in `Directory.Packages.props`).
 
 Sample files and scenarios: [samples/inbound/README.md](samples/inbound/README.md).

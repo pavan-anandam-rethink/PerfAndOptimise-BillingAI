@@ -26,6 +26,15 @@ internal static partial class ApiLog
     [LoggerMessage(EventId = 3011, Level = LogLevel.Information, Message = "Finished {Controller}.{Action} with status {StatusCode} in {ElapsedMilliseconds} ms.")]
     public static partial void ActionFinished(ILogger logger, string? controller, string? action, int statusCode, long elapsedMilliseconds);
 
+    [LoggerMessage(EventId = 3030, Level = LogLevel.Information, Message = "Lister run finished. ClearingHouses={ClearingHouseCount}, Failed={FailedCount}, ExitCode={ExitCode}")]
+    public static partial void ListerRunFinished(ILogger logger, int clearingHouseCount, int failedCount, int exitCode);
+
+    [LoggerMessage(EventId = 3032, Level = LogLevel.Warning, Message = "Rejected operator request to {Path}: missing or wrong operator key.")]
+    public static partial void OperatorKeyRejected(ILogger logger, string path);
+
+    [LoggerMessage(EventId = 3033, Level = LogLevel.Information, Message = "Operator replay of FileId={FileId}: {Outcome}.")]
+    public static partial void ReplayRequested(ILogger logger, Guid fileId, string outcome);
+
     [LoggerMessage(EventId = 3020, Level = LogLevel.Error, Message = "Request exception on {Path}. Method={Method} Controller={Controller} Action={Action} TraceIdentifier={TraceIdentifier} CorrelationId={CorrelationId}")]
     public static partial void RequestFailed(ILogger logger, Exception exception, string? path, string method, object? controller, object? action, string traceIdentifier, string correlationId);
 

@@ -29,6 +29,7 @@ public static class InfrastructureServiceCollectionExtensions
         AddSftp(services);
         AddBackup(services);
         AddBilling(services);
+        services.AddPipelineInfrastructure(configuration);
         return services;
     }
 

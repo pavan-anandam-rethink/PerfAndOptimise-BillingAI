@@ -68,6 +68,22 @@ public sealed class SshNetSftpSession : ISftpSession, IDisposable
     }
 
     /// <inheritdoc />
+    public Task CopyToAsync(RemoteFile file, Stream destination, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(destination);
+
+        return UseClientAsync(
+            async (client, token) =>
+            {
+                await client.DownloadFileAsync(file.RemotePath, destination, token).ConfigureAwait(false);
+                InfrastructureLog.SftpFileDownloaded(_logger, file.Name, file.Size);
+                return true;
+            },
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
     public Task DeleteAsync(RemoteFile file, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(file);

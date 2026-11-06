@@ -3,7 +3,7 @@ using Rethink.BH.Billing.ClearingHouse.Inbound.Domain.Files;
 
 namespace Rethink.BH.Billing.ClearingHouse.Inbound.Infrastructure.Sftp;
 
-/// <summary>Decorator that retries transient list and download failures. Delete passes straight through.</summary>
+/// <summary>Decorator that retries transient list and download failures. Streaming copy and delete pass straight through.</summary>
 public sealed class RetryingSftpSession : ISftpSession
 {
     private readonly ISftpSession _inner;
@@ -27,6 +27,9 @@ public sealed class RetryingSftpSession : ISftpSession
         => await _pipelines.Download
             .ExecuteAsync(async token => await _inner.DownloadAsync(file, token).ConfigureAwait(false), cancellationToken)
             .ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public Task CopyToAsync(RemoteFile file, Stream destination, CancellationToken cancellationToken) => _inner.CopyToAsync(file, destination, cancellationToken);
 
     /// <inheritdoc />
     public Task DeleteAsync(RemoteFile file, CancellationToken cancellationToken) => _inner.DeleteAsync(file, cancellationToken);

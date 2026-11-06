@@ -141,3 +141,59 @@ datadog:
 # ConnectionStrings__BlobStorage__ConnectionString. Values are literals or Key Vault secret NAMES, never secrets.
 # See docs/configuration.md for every key. Set per environment in values-<env>.yaml.
 inboundConfig: {}
+
+# Queue pipeline (docs/pipeline.md). Nothing below renders until enabled is true, and the service ignores the pipeline
+# while mode is Off, so the legacy download endpoint is unchanged until an environment opts in.
+pipeline:
+  enabled: false
+  # Off | Shadow | Active. Shadow lands files only; Active also registers with Billing and deletes remote files.
+  mode: "Off"
+  clearingHouseIds: [1, 8]
+  # Service Bus namespace host, for example sb-billing-inbound-qa.servicebus.windows.net (workload identity, no keys).
+  serviceBusNamespace: ""
+  downloadQueueName: inbound-download
+  processQueueName: inbound-process
+  # Key Vault secret NAME holding the manifest connection string (Authentication=Active Directory Workload Identity).
+  manifestConnectionSecretName: ""
+  # Optional Kubernetes Secret with key "operatorKey" for the /inbound-pipeline operator endpoints. Unset hides them.
+  operatorKeySecretName: ""
+  # Extra Pipeline__*/ServiceBus__* settings, for example Pipeline__MaxAttempts: "5".
+  settings: {}
+  lister:
+    schedule: "5 * * * *"
+    timeZone: America/New_York
+    activeDeadlineSeconds: 1800
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+  workers:
+    # Client id of the managed identity KEDA uses to read queue length.
+    kedaIdentityId: ""
+    pollingInterval: 30
+    cooldownPeriod: 300
+    download:
+      minReplicas: 0
+      maxReplicas: 4
+      messagesPerReplica: 8
+      resources:
+        requests:
+          cpu: 100m
+          memory: 192Mi
+        limits:
+          cpu: 500m
+          memory: 384Mi
+    process:
+      minReplicas: 0
+      maxReplicas: 4
+      messagesPerReplica: 8
+      resources:
+        requests:
+          cpu: 100m
+          memory: 192Mi
+        limits:
+          cpu: 500m
+          memory: 384Mi

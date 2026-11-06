@@ -1,0 +1,21 @@
+{{- if .Values.pipeline.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "web-api.fullname" . }}-pipeline-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "web-api.labels" . | nindent 4 }}
+data:
+  Pipeline__Mode: {{ .Values.pipeline.mode | quote }}
+  {{- range $index, $id := .Values.pipeline.clearingHouseIds }}
+  Pipeline__ClearingHouseIds__{{ $index }}: {{ $id | toString | quote }}
+  {{- end }}
+  ServiceBus__FullyQualifiedNamespace: {{ required "pipeline.serviceBusNamespace is required when pipeline.enabled is true" .Values.pipeline.serviceBusNamespace | quote }}
+  ServiceBus__DownloadQueueName: {{ .Values.pipeline.downloadQueueName | quote }}
+  ServiceBus__ProcessQueueName: {{ .Values.pipeline.processQueueName | quote }}
+  ConnectionStrings__InboundManifest: {{ required "pipeline.manifestConnectionSecretName is required when pipeline.enabled is true" .Values.pipeline.manifestConnectionSecretName | quote }}
+  {{- range $key, $value := .Values.pipeline.settings }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}
+{{- end }}

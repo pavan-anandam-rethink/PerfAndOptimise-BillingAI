@@ -14,4 +14,13 @@ public static class OperationNames
 
     /// <summary>Remote delete after Billing queued the file.</summary>
     public const string DeleteRemoteFile = "DeleteRemoteFile";
+
+    /// <summary>Pipeline lister: list, register in the manifest, and enqueue.</summary>
+    public const string ListInboundFiles = "ListInboundFiles";
+
+    /// <summary>Pipeline download worker: stream one file into landing storage.</summary>
+    public const string LandInboundFile = "LandInboundFile";
+
+    /// <summary>Pipeline processor: back up and register one landed file with Billing.</summary>
+    public const string RegisterLandedFile = "RegisterLandedFile";
 }

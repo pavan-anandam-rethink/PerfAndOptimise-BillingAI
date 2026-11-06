@@ -1,0 +1,65 @@
+{{- if .Values.pipeline.enabled }}
+{{- $fullname := include "web-api.fullname" . }}
+{{- $workers := .Values.pipeline.workers }}
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ $fullname }}-servicebus
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "web-api.labels" . | nindent 4 }}
+spec:
+  podIdentity:
+    provider: azure-workload
+    identityId: {{ required "pipeline.workers.kedaIdentityId is required when pipeline.enabled is true" $workers.kedaIdentityId | quote }}
+{{- range $stage := list (dict "role" "DownloadWorker" "name" "download" "queue" $.Values.pipeline.downloadQueueName "settings" $workers.download) (dict "role" "ProcessWorker" "name" "process" "queue" $.Values.pipeline.processQueueName "settings" $workers.process) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-{{ $stage.name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    {{- include "web-api.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $stage.settings.minReplicas }}
+  selector:
+    matchLabels:
+      {{- include "web-api.selectorLabels" $ | nindent 6 }}
+      app: {{ $fullname }}-{{ $stage.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "web-api.selectorLabels" $ | nindent 8 }}
+        app: {{ $fullname }}-{{ $stage.name }}
+    spec:
+      serviceAccountName: {{ include "web-api.serviceAccountName" $ }}
+      # Workers settle in-flight messages before exiting; an unsettled message is redelivered after its lock expires.
+      terminationGracePeriodSeconds: 120
+      containers:
+        {{- include "web-api.pipelineContainer" (dict "root" $ "role" $stage.role "resources" $stage.settings.resources) | nindent 8 }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ $fullname }}-{{ $stage.name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    {{- include "web-api.labels" $ | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ $fullname }}-{{ $stage.name }}
+  minReplicaCount: {{ $stage.settings.minReplicas }}
+  maxReplicaCount: {{ $stage.settings.maxReplicas }}
+  pollingInterval: {{ $workers.pollingInterval }}
+  cooldownPeriod: {{ $workers.cooldownPeriod }}
+  triggers:
+  - type: azure-servicebus
+    metadata:
+      namespace: {{ $.Values.pipeline.serviceBusNamespace | trimSuffix ".servicebus.windows.net" | quote }}
+      queueName: {{ $stage.queue | quote }}
+      messageCount: {{ $stage.settings.messagesPerReplica | toString | quote }}
+    authenticationRef:
+      name: {{ $fullname }}-servicebus
+{{- end }}
+{{- end }}

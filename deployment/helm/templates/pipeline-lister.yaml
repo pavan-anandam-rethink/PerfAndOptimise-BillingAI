@@ -1,0 +1,32 @@
+{{- if .Values.pipeline.enabled }}
+# One listing pass per schedule. The blob lease in the service also prevents overlapping runs across clusters.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "web-api.fullname" . }}-lister
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "web-api.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.pipeline.lister.schedule | quote }}
+  timeZone: {{ .Values.pipeline.lister.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: {{ .Values.pipeline.lister.activeDeadlineSeconds }}
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            {{- include "web-api.selectorLabels" . | nindent 12 }}
+            app: {{ include "web-api.fullname" . }}-lister
+        spec:
+          serviceAccountName: {{ include "web-api.serviceAccountName" . }}
+          restartPolicy: Never
+          containers:
+            {{- include "web-api.pipelineContainer" (dict "root" $ "role" "Lister" "resources" .Values.pipeline.lister.resources) | nindent 12 }}
+{{- end }}

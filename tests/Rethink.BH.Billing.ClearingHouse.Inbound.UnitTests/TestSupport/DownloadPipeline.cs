@@ -73,6 +73,21 @@ public sealed class FakeSftpSession : ISftpSession
         }
     }
 
+    public async Task CopyToAsync(RemoteFile file, Stream destination, CancellationToken cancellationToken)
+    {
+        if (BeforeDownload is not null)
+        {
+            await BeforeDownload(file, cancellationToken);
+        }
+
+        if (DownloadFailures.TryGetValue(file.Name, out var failure))
+        {
+            throw failure;
+        }
+
+        await destination.WriteAsync(Contents[file.Name], cancellationToken);
+    }
+
     public Task DeleteAsync(RemoteFile file, CancellationToken cancellationToken)
     {
         if (DeleteFailures.TryGetValue(file.Name, out var failure))

@@ -23,13 +23,17 @@ public sealed class RemoteFileSelector : IRemoteFileSelector
 
     /// <inheritdoc />
     public IReadOnlyList<RemoteFile> SelectForProcessing(IReadOnlyList<RemoteFile> listed)
+        => SelectStable(listed, _timeProvider.GetUtcNow().UtcDateTime, _minimumAge);
+
+    /// <summary>Files modified at least <paramref name="minimumAge"/> before <paramref name="nowUtc"/>, in legacy order.</summary>
+    public static IReadOnlyList<RemoteFile> SelectStable(IReadOnlyList<RemoteFile> listed, DateTime nowUtc, TimeSpan minimumAge)
     {
         ArgumentNullException.ThrowIfNull(listed);
 
         IEnumerable<RemoteFile> candidates = listed;
-        if (_minimumAge > TimeSpan.Zero)
+        if (minimumAge > TimeSpan.Zero)
         {
-            var newestAllowed = _timeProvider.GetUtcNow().UtcDateTime - _minimumAge;
+            var newestAllowed = nowUtc - minimumAge;
             candidates = candidates.Where(file => file.ModifiedAtUtc <= newestAllowed);
         }
 

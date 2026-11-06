@@ -1,5 +1,6 @@
 using Rethink.BH.Billing.ClearingHouse.Inbound.Domain.ClearingHouses;
 using Rethink.BH.Billing.ClearingHouse.Inbound.Domain.Files;
+using Rethink.BH.Billing.ClearingHouse.Inbound.Domain.Pipeline;
 
 namespace Rethink.BH.Billing.ClearingHouse.Inbound.Application.Diagnostics;
 
@@ -26,6 +27,29 @@ public static class LogScopes
 
     /// <summary>Scope key for the MediatR request name.</summary>
     public const string RequestName = "RequestName";
+
+    /// <summary>Scope key for the manifest file id.</summary>
+    public const string FileId = "FileId";
+
+    /// <summary>Scope key for the pipeline stage.</summary>
+    public const string PipelineStage = "PipelineStage";
+
+    /// <summary>Scope key for the delivery attempt.</summary>
+    public const string Attempt = "Attempt";
+
+    /// <summary>Scope for one queue message.</summary>
+    public static IReadOnlyDictionary<string, object> ForWorkItem(InboundWorkStage stage, InboundFileWorkItem workItem)
+    {
+        ArgumentNullException.ThrowIfNull(workItem);
+
+        return new Dictionary<string, object>(4, StringComparer.Ordinal)
+        {
+            [FileId] = workItem.FileId.ToString("N"),
+            [PipelineStage] = stage.ToString(),
+            [Attempt] = workItem.Attempt,
+            [ClearingHouseId] = workItem.ClearingHouseId,
+        };
+    }
 
     /// <summary>Scope for one download run.</summary>
     public static IReadOnlyDictionary<string, object> ForRun(ClearingHouseDescriptor clearingHouse, string downloadRunId)

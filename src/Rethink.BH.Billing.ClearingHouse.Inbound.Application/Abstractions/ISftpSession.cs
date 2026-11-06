@@ -11,6 +11,9 @@ public interface ISftpSession : IAsyncDisposable
     /// <summary>Downloads one file. The caller owns and must dispose the returned content.</summary>
     Task<IFileContent> DownloadAsync(RemoteFile file, CancellationToken cancellationToken);
 
+    /// <summary>Streams one file into <paramref name="destination"/> without buffering the whole file. Never retried, because the destination may hold a partial copy.</summary>
+    Task CopyToAsync(RemoteFile file, Stream destination, CancellationToken cancellationToken);
+
     /// <summary>Deletes one remote file. Throws when the delete fails.</summary>
     Task DeleteAsync(RemoteFile file, CancellationToken cancellationToken);
 }

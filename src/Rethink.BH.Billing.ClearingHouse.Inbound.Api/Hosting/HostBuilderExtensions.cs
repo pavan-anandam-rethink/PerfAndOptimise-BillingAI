@@ -32,6 +32,7 @@ public static class HostBuilderExtensions
         services.AddInboundApplication(configuration);
         services.AddInboundInfrastructure(configuration);
         services.AddInboundApi(configuration);
+        services.AddPipelineRole(configuration);
         return builder;
     }
 

@@ -50,7 +50,18 @@ spec:
           envFrom:
           - configMapRef:
               name: {{ include "web-api.fullname" . }}-inbound-config
+          {{- if .Values.pipeline.enabled }}
+          - configMapRef:
+              name: {{ include "web-api.fullname" . }}-pipeline-config
+          {{- end }}
           env:
+          {{- if and .Values.pipeline.enabled .Values.pipeline.operatorKeySecretName }}
+          - name: Pipeline__OperatorKey
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.pipeline.operatorKeySecretName }}
+                key: operatorKey
+          {{- end }}
           - name: ASPNETCORE_ENVIRONMENT
             valueFrom:
               configMapKeyRef:

@@ -100,6 +100,24 @@ public sealed class SftpTests
     }
 
     [Fact]
+    public async Task Copy_streams_straight_into_the_destination()
+    {
+        using var session = await Open();
+        var payload = TestData.Sample("AV_835_20261104_0003.x12");
+        _clients[0]
+            .Setup(client => client.DownloadFileAsync("/ReceiveFiles/a.x12", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .Returns((string _, Stream output, CancellationToken token) => output.WriteAsync(payload, token).AsTask());
+        using var destination = new MemoryStream();
+
+        await session.CopyToAsync(TestData.File("a.x12", size: payload.Length), destination, CancellationToken.None);
+
+        destination.ToArray().Should().Equal(payload);
+        _logger.Sink.SingleEvent(2003).Level.Should().Be(LogLevel.Debug);
+        await FluentActions.Invoking(() => session.CopyToAsync(null!, destination, CancellationToken.None)).Should().ThrowAsync<ArgumentNullException>();
+        await FluentActions.Invoking(() => session.CopyToAsync(TestData.File("a.x12"), null!, CancellationToken.None)).Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
     public async Task Download_failure_releases_the_slot()
     {
         using var session = await Open(poolSize: 1);
@@ -393,6 +411,21 @@ public sealed class SftpTests
         inner.Verify(s => s.ListAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
         inner.Verify(s => s.DownloadAsync(file, It.IsAny<CancellationToken>()), Times.Exactly(2));
         inner.Verify(s => s.DeleteAsync(file, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Retrying_session_never_retries_a_streaming_copy()
+    {
+        var pipelines = new SftpRetryPipelines(TestData.Options(options => { options.SftpRetryCount = 2; options.SftpRetryBaseDelayMilliseconds = 1; }), TimeProvider.System, new CapturingLogger<SftpRetryPipelines>());
+        var inner = new Mock<ISftpSession>();
+        var file = TestData.File("a.x12");
+        using var destination = new MemoryStream();
+        inner.Setup(session => session.CopyToAsync(file, destination, It.IsAny<CancellationToken>())).ThrowsAsync(new SocketException());
+        await using var session = new RetryingSftpSession(inner.Object, pipelines);
+
+        await FluentActions.Invoking(() => session.CopyToAsync(file, destination, CancellationToken.None)).Should().ThrowAsync<SocketException>();
+
+        inner.Verify(s => s.CopyToAsync(file, destination, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

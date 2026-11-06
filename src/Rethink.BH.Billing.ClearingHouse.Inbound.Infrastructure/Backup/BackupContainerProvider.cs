@@ -1,20 +1,14 @@
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Options;
 using Rethink.BH.Billing.ClearingHouse.Inbound.Infrastructure.Secrets;
+using Rethink.BH.Billing.ClearingHouse.Inbound.Infrastructure.Storage;
 
 namespace Rethink.BH.Billing.ClearingHouse.Inbound.Infrastructure.Backup;
 
-/// <summary>
-/// Creates the container client once and reuses it (Azure SDK clients are thread-safe and pool connections).
-/// A failed resolution is not cached, so the next file retries it.
-/// </summary>
+/// <summary>The <c>AvailityBackup</c> container client, created once and reused. A failed resolution is not cached.</summary>
 public sealed class BackupContainerProvider : IBackupContainerProvider, IDisposable
 {
-    private readonly BackupStorageOptions _options;
-    private readonly ISecretResolver _secretResolver;
-    private readonly Func<string, BlobServiceClient> _serviceClientFactory;
-    private readonly SemaphoreSlim _creationLock = new(1, 1);
-    private BlobContainerClient? _container;
+    private readonly BlobContainerProvider _provider;
 
     /// <summary>Creates the provider with the default <see cref="BlobServiceClient"/> factory.</summary>
     public BackupContainerProvider(IOptions<BackupStorageOptions> options, ISecretResolver secretResolver)
@@ -27,45 +21,17 @@ public sealed class BackupContainerProvider : IBackupContainerProvider, IDisposa
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        _options = options.Value;
-        _secretResolver = secretResolver;
-        _serviceClientFactory = serviceClientFactory;
+        _provider = new BlobContainerProvider(
+            options.Value.ContainerName,
+            options.Value.ConnectionString,
+            BackupStorageOptions.ConnectionStringKey,
+            secretResolver,
+            serviceClientFactory);
     }
 
     /// <inheritdoc />
-    public async ValueTask<BlobContainerClient> GetContainerAsync(CancellationToken cancellationToken)
-    {
-        var existing = Volatile.Read(ref _container);
-        if (existing is not null)
-        {
-            return existing;
-        }
-
-        await _creationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        using var release = new SemaphoreRelease(_creationLock);
-        if (_container is not null)
-        {
-            return _container;
-        }
-
-        var connectionString = await _secretResolver
-            .ResolveAsync(_options.ConnectionString, BackupStorageOptions.ConnectionStringKey, LiteralWhenContainsEqualsPolicy.Instance, cancellationToken)
-            .ConfigureAwait(false);
-
-        var container = _serviceClientFactory(connectionString).GetBlobContainerClient(_options.ContainerName);
-        Volatile.Write(ref _container, container);
-        return container;
-    }
+    public ValueTask<BlobContainerClient> GetContainerAsync(CancellationToken cancellationToken) => _provider.GetContainerAsync(cancellationToken);
 
     /// <inheritdoc />
-    public void Dispose() => _creationLock.Dispose();
-
-    private sealed class SemaphoreRelease : IDisposable
-    {
-        private readonly SemaphoreSlim _semaphore;
-
-        public SemaphoreRelease(SemaphoreSlim semaphore) => _semaphore = semaphore;
-
-        public void Dispose() => _semaphore.Release();
-    }
+    public void Dispose() => _provider.Dispose();
 }

@@ -33,6 +33,38 @@ public static partial class InfrastructureLog
     [LoggerMessage(EventId = 2006, Level = LogLevel.Error, Message = "SFTP host key rejected for {SftpHost}. PresentedFingerprint={PresentedFingerprint}")]
     public static partial void SftpHostKeyRejected(ILogger logger, string sftpHost, string presentedFingerprint);
 
+    /// <summary>The lister registered listed files in the manifest.</summary>
+    [LoggerMessage(EventId = 2020, Level = LogLevel.Information, Message = "Manifest checked {ListedCount} files: {NewCount} new, {UnqueuedCount} registered earlier but never queued.")]
+    public static partial void ManifestRegistered(ILogger logger, int listedCount, int newCount, int unqueuedCount);
+
+    /// <summary>The lister lease could not be renewed; another lister may start after it expires.</summary>
+    [LoggerMessage(EventId = 2021, Level = LogLevel.Error, Message = "Lost lease {LeaseName} while renewing it.")]
+    public static partial void LeaseRenewalFailed(ILogger logger, string leaseName, Exception exception);
+
+    /// <summary>The lister lease could not be released; it expires on its own.</summary>
+    [LoggerMessage(EventId = 2022, Level = LogLevel.Warning, Message = "Could not release lease {LeaseName}; it expires within {LeaseSeconds} s.")]
+    public static partial void LeaseReleaseFailed(ILogger logger, string leaseName, int leaseSeconds, Exception? exception);
+
+    /// <summary>Service Bus reported an error outside a message handler (connection, lock renewal).</summary>
+    [LoggerMessage(EventId = 2023, Level = LogLevel.Error, Message = "Service Bus error on {EntityPath} during {ErrorSource}.")]
+    public static partial void ServiceBusError(ILogger logger, string entityPath, string errorSource, Exception exception);
+
+    /// <summary>A message body could not be read; it is dead-lettered.</summary>
+    [LoggerMessage(EventId = 2024, Level = LogLevel.Error, Message = "Dead-lettered message {MessageId} from {EntityPath}: the body is not a work item.")]
+    public static partial void InvalidWorkMessage(ILogger logger, string messageId, string entityPath);
+
+    /// <summary>A message was settled.</summary>
+    [LoggerMessage(EventId = 2025, Level = LogLevel.Information, Message = "Settled message {MessageId} from {EntityPath} as {Disposition}. DeliveryCount={DeliveryCount}")]
+    public static partial void WorkMessageSettled(ILogger logger, string messageId, string entityPath, string disposition, int deliveryCount);
+
+    /// <summary>Work items were sent.</summary>
+    [LoggerMessage(EventId = 2026, Level = LogLevel.Information, Message = "Sent {MessageCount} messages to {EntityPath}. DelaySeconds={DelaySeconds}")]
+    public static partial void WorkMessagesSent(ILogger logger, int messageCount, string entityPath, long delaySeconds);
+
+    /// <summary>A queue worker started or stopped.</summary>
+    [LoggerMessage(EventId = 2027, Level = LogLevel.Information, Message = "{EntityPath} worker {WorkerState}. MaxConcurrentCalls={MaxConcurrentCalls}")]
+    public static partial void WorkerStateChanged(ILogger logger, string entityPath, string workerState, int maxConcurrentCalls);
+
     /// <summary>Billing answered an inbound file registration.</summary>
     [LoggerMessage(EventId = 2010, Level = LogLevel.Information, Message = "Billing UploadEDIResponseFile answered {StatusCode} for {FileName}. RequestBytes={RequestBytes}, ElapsedMilliseconds={ElapsedMilliseconds}")]
     public static partial void BillingResponseReceived(ILogger logger, int statusCode, string fileName, long requestBytes, long elapsedMilliseconds);

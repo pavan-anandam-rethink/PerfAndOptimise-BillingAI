@@ -63,3 +63,35 @@ inboundConfig:
   InboundDownload__MinimumFileAgeSeconds: "120"
   Clearinghouses__Availity__HostKeyFingerprint: "Prd--Clearinghouse--Availity--HostKeyFingerprint"
 ```
+
+## Queue pipeline (`pipeline` in the Helm values)
+
+Off by default everywhere: `pipeline.enabled: false` renders no pipeline resources, and `Pipeline:Mode` is `Off` in
+`appsettings.json`. See [pipeline.md](pipeline.md) for the cutover runbook. Enabling the pipeline adds the ConfigMap
+`<fullname>-pipeline-config` to every pod, built from these values:
+
+| Helm value | Environment variable | Default | Notes |
+| --- | --- | --- | --- |
+| `pipeline.mode` | `Pipeline__Mode` | `Off` | `Off`, `Shadow`, or `Active` |
+| `pipeline.clearingHouseIds` | `Pipeline__ClearingHouseIds__<n>` | `1`, `8` | Clearing houses the lister lists |
+| `pipeline.serviceBusNamespace` | `ServiceBus__FullyQualifiedNamespace` | required | `<name>.servicebus.windows.net`, workload identity |
+| `pipeline.downloadQueueName`, `processQueueName` | `ServiceBus__DownloadQueueName`, `ServiceBus__ProcessQueueName` | `inbound-download`, `inbound-process` | |
+| `pipeline.manifestConnectionSecretName` | `ConnectionStrings__InboundManifest` | required | Key Vault secret name (or a literal connection string) |
+| `pipeline.operatorKeySecretName` | `Pipeline__OperatorKey` (API pod only) | not set | Kubernetes Secret with key `operatorKey`; unset hides the operator endpoints |
+| `pipeline.settings` | any | `{}` | Extra `Pipeline__*` or `ServiceBus__*` overrides |
+| — | `Pipeline__Role` | `Api` | Set by each template: `Lister`, `DownloadWorker`, `ProcessWorker` |
+
+Service settings (defaults in `appsettings.json`):
+
+| Setting | Default | Notes |
+| --- | --- | --- |
+| `Pipeline:MinimumFileAgeSeconds` | `120` | Files modified more recently wait for the next listing |
+| `Pipeline:DownloadConcurrency`, `ProcessConcurrency` | `4`, `4` | Messages per worker replica (1–64) |
+| `Pipeline:MaxAttempts` | `5` | Failures before quarantine |
+| `Pipeline:RetryBaseDelaySeconds`, `RetryMaxDelaySeconds` | `30`, `1800` | Exponential backoff between attempts |
+| `Pipeline:ClaimTimeoutMinutes` | `30` | How long a worker owns an in-progress file |
+| `Pipeline:StalledAfterMinutes`, `StalledBatchSize` | `120`, `500` | Crash recovery by the lister |
+| `Pipeline:Landing:ContainerName`, `BlockSizeKiB`, `LeaseSeconds` | `inbound-landing`, `4096`, `60` | Landing container on the backup storage account |
+| `Pipeline:Manifest:CommandTimeoutSeconds`, `MaxRetryCount` | `30`, `5` | SQL timeout and transient retries |
+| `ServiceBus:ConnectionString` | not set | Local development only; a Key Vault name or literal. Deployed pods use the namespace and workload identity |
+| `ServiceBus:MaxAutoLockRenewalMinutes` | `15` | Longest a worker keeps renewing a message lock |

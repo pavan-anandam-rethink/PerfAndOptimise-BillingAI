@@ -3,7 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rethink.BH.Billing.ClearingHouse.Inbound.Application.Diagnostics;
 using Rethink.BH.Billing.ClearingHouse.Inbound.Application.Downloads;
+using Rethink.BH.Billing.ClearingHouse.Inbound.Application.Abstractions;
 using Rethink.BH.Billing.ClearingHouse.Inbound.Application.Options;
+using Rethink.BH.Billing.ClearingHouse.Inbound.Application.Pipeline;
 
 namespace Rethink.BH.Billing.ClearingHouse.Inbound.Application.DependencyInjection;
 
@@ -33,6 +35,30 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<IRemoteFileSelector, RemoteFileSelector>();
         services.AddSingleton<IInboundFileProcessor, InboundFileProcessor>();
         services.AddSingleton<IInboundFileBatchProcessor, InboundFileBatchProcessor>();
+        AddPipeline(services, configuration);
         return services;
+    }
+
+    private static void AddPipeline(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<PipelineOptions>()
+            .Bind(configuration.GetSection(PipelineOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(options => !options.IsEnabled || options.ClearingHouseIds.Length > 0, "Pipeline:ClearingHouseIds must list at least one clearing house when the pipeline is on.")
+            .Validate(options => options.RetryMaxDelaySeconds >= options.RetryBaseDelaySeconds, "Pipeline:RetryMaxDelaySeconds must be at least RetryBaseDelaySeconds.")
+            .ValidateOnStart();
+
+        services.AddSingleton<SharedSftpSessionProvider>();
+        services.AddSingleton<ISftpSessionProvider>(provider => provider.GetRequiredService<SharedSftpSessionProvider>());
+        services.AddSingleton<WorkItemRetryPolicy>();
+        services.AddSingleton<WorkItemClaimer>();
+        services.AddSingleton<IWorkItemFailureHandler, WorkItemFailureHandler>();
+        services.AddSingleton<StalledFileReconciler>();
+        services.AddSingleton<InboundFileLister>();
+        services.AddSingleton<InboundFileLander>();
+        services.AddSingleton<ILandedFileRegistrar, LandedFileRegistrar>();
+        services.AddSingleton<RemoteFileFinalizer>();
+        services.AddSingleton<BillingRegistrationStep>();
+        services.AddTransient<IInboundWorkDispatcher, InboundWorkDispatcher>();
     }
 }
