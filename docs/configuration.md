@@ -64,11 +64,12 @@ inboundConfig:
   Clearinghouses__Availity__HostKeyFingerprint: "Prd--Clearinghouse--Availity--HostKeyFingerprint"
 ```
 
-## Queue pipeline (`pipeline` in the Helm values)
+## Clearing house inbound EDI (`pipeline` in the Helm values)
 
-Off by default everywhere: `pipeline.enabled: false` renders no pipeline resources, and `Pipeline:Mode` is `Off` in
-`appsettings.json`. See [pipeline.md](pipeline.md) for the cutover runbook. Enabling the pipeline adds the ConfigMap
-`<fullname>-pipeline-config` to every pod, built from these values:
+These settings are the clearing house inbound EDI pickup (Availity id 1, Stedi id 8). `pipeline` is only the Helm value name.
+Off by default: `pipeline.enabled: false` renders no lister or workers, and `Pipeline:Mode` is `Off` in `appsettings.json`.
+See [pipeline.md](pipeline.md) for the cutover runbook. Turning it on adds the ConfigMap `<fullname>-pipeline-config` to every
+pod, built from these values:
 
 | Helm value | Environment variable | Default | Notes |
 | --- | --- | --- | --- |

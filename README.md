@@ -4,8 +4,10 @@ Phase 1 of the clearing house performance work: the inbound SFTP download (`POST
 rebuilt as a standalone .NET 8 service with centralized logging and an optimized download path. The HTTP contract and the Billing
 calls are the same as the legacy `Rethink.BH.Billing.ClearingHouseService` (branch `new-tenant-bill/main`).
 
-Phase 2 adds an opt-in queue pipeline (scheduled lister, Service Bus, KEDA-scaled download and process workers, Azure SQL
-manifest) that runs beside the unchanged endpoint. It is off by default; see [docs/pipeline.md](docs/pipeline.md).
+The scheduled pickup for those same clearing houses (Availity id 1, Stedi id 8) is off until an environment turns it on.
+What to run, how a file moves, the dev configuration, and the 1,000-file test are in
+[Clearing house inbound EDI](#clearing-house-inbound-edi-availity-and-stedi). The setting key is `Pipeline`; that name is only
+the configuration section.
 
 ## Solution layout
 
@@ -105,6 +107,108 @@ Verified by tests in `tests/…UnitTests` (named in brackets).
 | Billing body streamed with exact `Content-Length` instead of three in-memory copies; downloads use pooled buffers | same bytes |
 | CORS allows only `Cors:AllowedOrigins` (legacy allowed any origin). Server-to-server callers are unaffected. | security hardening |
 | Container image no longer installs `git` and `bash` | smaller attack surface |
+
+## Clearing house inbound EDI (Availity and Stedi)
+
+The service downloads inbound EDI from a clearing house SFTP folder, stores a backup, and registers each file with Billing
+(`ClearingHouse/UploadEDIResponseFile`). Two clearing houses are configured:
+
+| Clearing house | Id | SFTP settings | Dev secret names in `appsettings.json` |
+| --- | --- | --- | --- |
+| Availity | `1` | `Clearinghouses:Availity` | `availity-hosts`, `availity-port`, `availity-username`, `availity-password`, `availity-downloadDirectory` |
+| Stedi | `8` | `Clearinghouses:Stedi` | `stedi-hosts`, `stedi-port`, `stedi-username`, `stedi-password`, `stedi-downloadDirectory` |
+
+A value with no `=` is a Key Vault secret name (dev vault `https://bai-ch-eus2-dev-kv.vault.azure.net/`, or
+`https://rta-billing-dev-kv.vault.azure.net/` when `ASPNETCORE_ENVIRONMENT` is Development). A value that contains `=` is used
+as written, which is how a local connection string is set.
+
+### How one file is processed
+
+**HTTP download (this is what dev runs today).** Something calls:
+
+`POST /ClearingHouseClaimProcessor/downloadEdiDataFromSftp`
+
+with body `1` for Availity or `8` for Stedi, and header `XApiKey`. The request lists that clearing house's download directory,
+skips directories and names that start with `.`, then for each file: download, write the backup blob, call Billing, and delete
+the SFTP file only after Billing has accepted it and queued it. The call returns `200` when every file is finished, `204` when
+the folder had nothing to process, `500` with `{"failed":n,"total":m}` when any file is still on SFTP, and `400` with
+`Invalid clearing house ID.` for an unknown id. One request stops after `InboundDownload:MaxRunMinutes` (13). Files not reached
+stay on SFTP for the next call.
+
+**Scheduled pickup (off until you enable it).** The same image runs four roles. Helm sets `Pipeline__Role` on each one.
+
+1. The lister CronJob (`<release>-lister`, hourly at minute 5, `America/New_York`) lists Availity and Stedi. It skips a file
+   modified in the last `Pipeline:MinimumFileAgeSeconds` (120), so a file still uploading is left for the next hour. New files
+   are inserted into Azure SQL table `inbound.InboundFile` and one Service Bus message (the file id only) is sent to
+   `inbound-download`.
+2. A download worker streams the file from SFTP into blob container `inbound-landing` and stores its SHA-256.
+3. A process worker checks that hash, writes the same backup the HTTP path writes, calls Billing the same way, then deletes the
+   SFTP file. While `Pipeline:Mode` is `Shadow`, this step does not run and Billing is not called. `Active` runs it.
+   `Off` (the default) means the lister does nothing and only the HTTP download runs.
+4. A failed file is retried with backoff (`Pipeline:RetryBaseDelaySeconds`, doubling, cap `Pipeline:RetryMaxDelaySeconds`).
+   After `Pipeline:MaxAttempts` (5) it is quarantined. `POST /inbound-pipeline/files/{id}/replay` with header `x-operator-key`
+   sends it again. A file Billing already accepted is not sent to Billing twice; the replay only retries the SFTP delete.
+
+Workers scale from the queue length (KEDA) and scale to zero when the queues are empty. The cutover order (Shadow, stop the
+HTTP caller, clear the shadow rows, then Active) is in [docs/pipeline.md](docs/pipeline.md).
+
+### What to configure
+
+Dev, QA, Staging, and Production do not get extra appsettings files. Dev defaults live in `appsettings.json` (`Pipeline:Mode` is
+`Off`). Every other environment sets the same keys as environment variables (`__` for a nested key).
+
+| To | Set | Dev default |
+| --- | --- | --- |
+| Leave the HTTP download as the only path | `Pipeline__Mode=Off` and Helm `pipeline.enabled: false` | already set |
+| Land files without calling Billing | `pipeline.enabled: true`, `pipeline.mode: Shadow` | off |
+| Download, call Billing, and delete from SFTP on the schedule | `pipeline.enabled: true`, `pipeline.mode: Active` | off |
+| Which clearing houses the lister reads | `pipeline.clearingHouseIds` | `1`, `8` |
+| Service Bus namespace | `pipeline.serviceBusNamespace` | empty until enabled |
+| Manifest database secret name | `ConnectionStrings__InboundManifest` (Helm `pipeline.manifestConnectionSecretName`) | secret name `Dev--Clearinghouse--ConnectionStrings--InboundManifest`; Helm value empty until enabled |
+| Operator endpoints | `pipeline.operatorKeySecretName` (Kubernetes secret key `operatorKey`) | unset, so the endpoints answer 404 |
+| Keep an uploading file until the next listing | `Pipeline__MinimumFileAgeSeconds` | `120` |
+| Stop the HTTP request | `InboundDownload__MaxRunMinutes` | `13` |
+| Files processed at once on the HTTP path | `InboundDownload__BatchConcurrency` | `2` |
+
+Enabling the schedule also needs the Azure resources in [docs/pipeline.md](docs/pipeline.md#azure-resources-and-access-platform-team):
+the two Service Bus queues, the `inbound.InboundFile` table (`deployment/sql/inbound-manifest.sql`), container `inbound-landing`,
+and the workload-identity roles. The API deployment alone does not list or download on a schedule.
+
+### How to test in the dev environment
+
+The 1,000 files are synthetic X12 5010 (999, 277CA, 835, and TA1), 250 of each, named `AV_999_20261107_0001.x12` through
+`AV_TA1_20261107_1000.x12`. Every name, id, and amount is made up. They are in
+[samples/inbound/dev-edi](samples/inbound/dev-edi). Regenerate them with `samples/inbound/New-DevEdiFiles.ps1`.
+
+Use a directory that does not also receive real Availity or Stedi files. Point the dev secret
+`availity-downloadDirectory` at that directory for the test, and put it back afterwards.
+
+1. Copy `samples/inbound/dev-edi` to that SFTP directory. The HTTP path takes files of any age. The scheduled pickup waits until
+   a file is 120 seconds old.
+2. Start the API with the dev vault (`KeyVaultUri` in `appsettings.json`, or the Development override) and the dev workload identity.
+3. Send the Availity download. `src/Rethink.BH.Billing.ClearingHouse.Inbound.Api/inbound-download.http` is the same call:
+
+```http
+POST /ClearingHouseClaimProcessor/downloadEdiDataFromSftp
+Content-Type: application/json
+XApiKey: <dev application key>
+
+1
+```
+
+4. Expect `200` when Billing queued all 1,000 and SFTP is empty, or `500` with `{"failed":n,"total":1000}` when some files remain.
+   A run that reaches 13 minutes returns and leaves the rest on SFTP; call it again until the folder is empty. Stedi is the same
+   call with body `8` and the Stedi directory.
+5. In Application Insights, follow one file with `customDimensions.FileName == "AV_835_20261107_0003.x12"` and one clearing house
+   with `customDimensions.ClearingHouse == "Availity"`. Event `1011` is the Billing registration. Event `1014` is the file finished.
+6. To test the schedule in dev, set `pipeline.enabled: true` and `pipeline.mode: Shadow` first. Billing is not called. After the
+   :05 listing, `inbound.InboundFile` should hold 1,000 `Landed` rows and the SFTP files should still be there. Move to `Active`
+   only by the cutover steps in [docs/pipeline.md](docs/pipeline.md#modes-and-cutover-runbook). Then the same rows move to `Done`
+   and the SFTP directory is empty. Quarantined files show at `GET /inbound-pipeline/quarantined` when `x-operator-key` is set.
+
+A local rehearsal uses the same files and the same HTTP call against `http://localhost:7400`, with `Clearinghouses:Availity:Hosts`
+(and the other SFTP values) set to literals that contain `=` so Key Vault is not queried, `InboundDownload:DeleteRemoteFiles` set
+to `false` if the files should stay on the local SFTP server, and `BillingApiUrl` left at `http://localhost:5001`.
 
 ## Configuration
 

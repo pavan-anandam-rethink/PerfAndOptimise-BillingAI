@@ -9,6 +9,13 @@ Synthetic X12 5010 responses for local runs and tests. Every name, id, and amoun
 | `AV_835_20261104_0003.x12` | 835 remittance | Payment file |
 | `AV_TA1_20261104_0004.x12` | TA1 interchange acknowledgment | Envelope-only file |
 
+## Dev folder (1,000 files)
+
+`dev-edi` holds 1,000 synthetic files for a dev SFTP test: 250 each of 999, 277CA, 835, and TA1. The name is
+`AV_<type>_20261107_<number>.x12`, from `AV_999_20261107_0001.x12` to `AV_TA1_20261107_1000.x12`. Copy that folder to the
+Availity dev download directory and follow the test steps in the repository README under "Clearing house inbound EDI".
+Regenerate with `New-DevEdiFiles.ps1`.
+
 ## Running a local download
 
 1. Start an SFTP server (for example `atmoz/sftp`) with a `ReceiveFiles` folder and copy these files into it.

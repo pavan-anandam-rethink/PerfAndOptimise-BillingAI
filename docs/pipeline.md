@@ -1,8 +1,12 @@
-# Inbound queue pipeline
+# Clearing house inbound EDI (Availity and Stedi)
 
-Phase 2 replaces the hourly "download everything in one HTTP request" run with three small workloads that share one image and
-one manifest. The legacy endpoint (`POST /ClearingHouseClaimProcessor/downloadEdiDataFromSftp`) is untouched and keeps working
-in every mode; the pipeline only runs where an environment opts in.
+This is the clearing house file pickup: Availity (clearing house id 1) and Stedi (clearing house id 8). The configuration
+section is named `Pipeline` because that is the key the service reads. It is not a build pipeline.
+
+The scheduled pickup replaces the hourly "download everything in one HTTP request" run with three small workloads that share
+one image and one manifest. `POST /ClearingHouseClaimProcessor/downloadEdiDataFromSftp` is untouched and keeps working in every
+mode. The scheduled pickup runs only where an environment opts in. The steps, the dev configuration, and the 1,000-file dev
+test are in the [README](../README.md#clearing-house-inbound-edi-availity-and-stedi).
 
 ```mermaid
 flowchart LR
